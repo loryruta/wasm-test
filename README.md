@@ -1,0 +1,1 @@
+emcc ./src/app.cpp -O0 -o voronoi.mjs -s EXPORTED_FUNCTIONS=_app_init,_app_draw -s EXPORTED_RUNTIME_METHODS=GL,cwrap -s ASSERTIONS=1 -s GL_DEBUG=1 -s GL_PREINITIALIZED_CONTEXT=1 -s USE_GLFW=3 -s MIN_WEBGL_VERSION=2
