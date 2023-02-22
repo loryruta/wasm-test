@@ -1777,6 +1777,18 @@ function dbg(text) {
   
     }
 
+  var tempFixedLengthArray = [];
+  
+  function _glDrawBuffers(n, bufs) {
+  
+      var bufArray = tempFixedLengthArray[n];
+      for (var i = 0; i < n; i++) {
+        bufArray[i] = HEAP32[(((bufs)+(i*4))>>2)];
+      }
+  
+      GLctx['drawBuffers'](bufArray);
+    }
+
   function _glFramebufferTexture2D(target, attachment, textarget, texture, level) {
       GLctx.framebufferTexture2D(target, attachment, textarget,
                                       GL.textures[texture], level);
@@ -2030,11 +2042,6 @@ function dbg(text) {
       }
     }
   
-  function _glUniform1f(location, v0) {
-      GLctx.uniform1f(webglGetUniformLocation(location), v0);
-    }
-
-  
   function _glUniform1i(location, v0) {
       GLctx.uniform1i(webglGetUniformLocation(location), v0);
     }
@@ -2138,6 +2145,7 @@ function dbg(text) {
       }
     }
 var GLctx;;
+for (var i = 0; i < 32; ++i) tempFixedLengthArray.push(new Array(i));;
 function checkIncomingModuleAPI() {
   ignoredModuleProp('fetchSettings');
 }
@@ -2164,6 +2172,7 @@ var wasmImports = {
   "glCreateShader": _glCreateShader,
   "glDeleteShader": _glDeleteShader,
   "glDrawArrays": _glDrawArrays,
+  "glDrawBuffers": _glDrawBuffers,
   "glFramebufferTexture2D": _glFramebufferTexture2D,
   "glGenFramebuffers": _glGenFramebuffers,
   "glGenTextures": _glGenTextures,
@@ -2172,7 +2181,6 @@ var wasmImports = {
   "glShaderSource": _glShaderSource,
   "glTexImage2D": _glTexImage2D,
   "glTexParameteri": _glTexParameteri,
-  "glUniform1f": _glUniform1f,
   "glUniform1i": _glUniform1i,
   "glUniform2f": _glUniform2f,
   "glUseProgram": _glUseProgram,

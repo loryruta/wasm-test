@@ -18,7 +18,7 @@ void main()
 {
     vec2 my_point = gl_FragCoord.xy;
 
-    ivec2 nearest_point_idx[2];
+    uint nearest_point_idx[2];
     float nearest_point_distance[2];
 
     nearest_point_distance[0] = INF;
@@ -30,23 +30,44 @@ void main()
     {
         for (int y = 0; y < texture_size.y; y++)
         {
-            vec2 uv = vec2(x, y) / vec2(texture_size);
-            vec2 point = texture(u_point_pos, uv).rg;
+            vec2 point = texelFetch(u_point_pos, ivec2(x, y), 0).rg;
 
             float d = distance(point, my_point);
-            for (int k = 0; k < 2; k++)
+            if (d < nearest_point_distance[0])
             {
-                if (d < nearest_point_distance[k])
-                {
-                    nearest_point_distance[k] = d;
-                    nearest_point_idx[k] = ivec2(x, y);
+                nearest_point_distance[1] = nearest_point_distance[0];
+                nearest_point_idx[1] = nearest_point_idx[0];
 
-                    break;
-                }
+                nearest_point_distance[0] = d;
+                nearest_point_idx[0] = uint(x * texture_size.y + y);
             }
         }
     }
 
-    frag_color = vec4(vec3(abs(sin(nearest_point_distance[0] * 0.1))), 1);
+    vec3 point_color = vec3(
+        hash(float(nearest_point_idx[0] + 324u)),
+        hash(float(nearest_point_idx[0] + 893u)),
+        hash(float(nearest_point_idx[0] + 172u))
+    );
 
+    const float k_border_size = 80.0;
+    const float k_border_shade_stripes = 3.8;
+    const vec3 k_border_color = vec3(0, 0, 0.07); 
+
+    float ed = abs(nearest_point_distance[0] - nearest_point_distance[1]);
+    ed = min(ed, k_border_size) / k_border_size;
+    ed = ed - mod(ed, (1.0 / k_border_shade_stripes));
+
+    // SHOW VORONOI
+    frag_color = vec4(
+        mix(k_border_color, point_color, ed),
+        1
+    );
+
+    /*
+    // SHOW POINTS
+    if (nearest_point_distance[0] < 15.0)
+        frag_color = vec4(0, 0, 0, 1);
+    else
+        frag_color = vec4(point_color, 1);*/
 }

@@ -6,11 +6,12 @@
 #include <string>
 #include <regex>
 #include <optional>
+#include <random>
 
 #include <GLES3/gl3.h>
 
 #define NUM_POINTS_X 5
-#define NUM_POINTS_Y 5
+#define NUM_POINTS_Y 4
 
 char const* g_screen_quad_shader_src = "{{ SCREEN_QUAD_SRC }}";
 char const* g_bounce_points_shader_src = "{{ BOUNCE_POINTS_SRC }}";
@@ -28,7 +29,13 @@ uint32_t g_frame_idx = 0;
 
 float rand_float()
 {
-    return ((float) rand()) / ((float) UINT32_MAX);
+    return ((float) rand()) / ((float) RAND_MAX);
+}
+
+uint64_t get_current_millis()
+{
+    using namespace std::chrono;
+    return duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
 }
 
 void initialize_point_textures()
@@ -38,8 +45,8 @@ void initialize_point_textures()
 
     for (int i = 0; i < NUM_POINTS_X * NUM_POINTS_Y; i++)
     {
-        float pos_x = (rand_float() * 2.0f - 1.0f) * 100.0f;
-        float pos_y = (rand_float() * 2.0f - 1.0f) * 100.0f;
+        float pos_x = rand_float() * 1024.0f;
+        float pos_y = rand_float() * 1024.0f;
 
         point_positions.push_back(pos_x);
         point_positions.push_back(pos_y);
@@ -48,9 +55,16 @@ void initialize_point_textures()
         float dir_y = rand_float() * 2.0f - 1.0f;
 
         float dir_norm = sqrt(dir_x * dir_x + dir_y * dir_y);
+        
+        dir_x /= dir_norm;
+        dir_y /= dir_norm;
+        
+        printf("Point %.1f, %.1f - Direction %.3f, %.3f\n",
+            pos_x, pos_y,
+            dir_x, dir_y);
 
-        point_directions.push_back(dir_x / dir_norm);
-        point_directions.push_back(dir_y / dir_norm);
+        point_directions.push_back(dir_x);
+        point_directions.push_back(dir_y);
     }
 
     for (int i = 0; i < 2; i++)
@@ -149,7 +163,7 @@ extern "C" void app_init()
 {
     printf("app_init\n");
 
-    srand(time(NULL));
+    srand((uint32_t) get_current_millis());
 
     initialize_point_textures();
     
@@ -162,22 +176,14 @@ extern "C" void app_init()
     glGenFramebuffers(1, &g_bounce_points_framebuffer);
 }
 
-uint64_t get_current_millis()
-{
-    using namespace std::chrono;
-    return duration_cast<milliseconds>(system_clock::now().time_since_epoch()).count();
-}
-
 extern "C" void app_draw(uint32_t screen_width, uint32_t screen_height)
 {
     static std::optional<uint64_t> last_frame_ms{};
     static uint32_t fps{};
     
     uint64_t now = get_current_millis();
-    uint64_t dt_ms = now - *last_frame_ms;
-    float dt = ((float) dt_ms) / 1000;
-
-    if (!last_frame_ms || dt_ms >= 1000)
+    float dt = last_frame_ms ? static_cast<float>(now - *last_frame_ms) / 1000.0f : 0.0f;
+    if (!last_frame_ms || dt >= 1.0f)
     {
         printf("FPS: %d\n", fps);
 
@@ -187,35 +193,44 @@ extern "C" void app_draw(uint32_t screen_width, uint32_t screen_height)
 
     fps++;
 
-    glViewport(0, 0, screen_width, screen_height);
 
     glClear(GL_COLOR_BUFFER_BIT);
     glClearColor(0, 0, 0, 1);
 
     /* Bounce points */
-    glUseProgram(g_bounce_points_program);
+    if (dt > 0)
+    {
+        glUseProgram(g_bounce_points_program);
 
-    // Setup & bind framebuffer
-    glBindFramebuffer(GL_FRAMEBUFFER, g_bounce_points_framebuffer);
+        glViewport(0, 0, NUM_POINTS_X, NUM_POINTS_Y);
 
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_point_positions_textures[(g_frame_idx + 1) % 2], 0);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, g_point_directions_textures[(g_frame_idx + 1) % 2], 0);
+        // Setup & bind framebuffer
+        glBindFramebuffer(GL_FRAMEBUFFER, g_bounce_points_framebuffer);
+        
+        GLenum draw_buffers[] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
+        glDrawBuffers(2, draw_buffers);
 
-    // Bind uniforms
-    glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, g_point_positions_textures[g_frame_idx % 2]);  // u_point_pos
-    glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, g_point_directions_textures[g_frame_idx % 2]); // u_point_dir
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_point_positions_textures[(g_frame_idx + 1) % 2], 0);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, g_point_directions_textures[(g_frame_idx + 1) % 2], 0);
 
-    glUniform1f(get_uniform_location(g_bounce_points_program, "u_dt"), dt);
-    glUniform2f(get_uniform_location(g_bounce_points_program, "u_screen_size"), (float) screen_width, (float) screen_height);
+        // Bind uniforms
+        glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, g_point_positions_textures[g_frame_idx % 2]);  // u_point_pos
+        glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, g_point_directions_textures[g_frame_idx % 2]); // u_point_dir
 
-    glDrawArrays(GL_TRIANGLES, 0, 6);
+        //glUniform1f(get_uniform_location(g_bounce_points_program, "u_dt"), dt);
+        glUniform2f(get_uniform_location(g_bounce_points_program, "u_screen_size"), (float) screen_width, (float) screen_height);
+
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+    }
 
     /* Voronoi */
     glUseProgram(g_voronoi_program);
 
+    glViewport(0, 0, screen_width, screen_height);
+
     glBindFramebuffer(GL_FRAMEBUFFER, /* Default */ 0);
 
-    glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, g_point_positions_textures[(g_frame_idx + 1) % 2]); // u_point_pos
+    glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, g_point_positions_textures[0]);//(g_frame_idx + 1) % 2]); // u_point_pos
 
     glDrawArrays(GL_TRIANGLES, 0, 6);
 
