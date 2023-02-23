@@ -8,7 +8,7 @@ The idea was to make a cool background for my portfolio by shading a [Voronoi di
 
 The first trial was to accelerate the nearest point search (for the Voronoi diagram generation) with a KD-tree but I was not able to upload the KD-tree efficiently on GPU because of the limited capabilities of OpenGL 3.00 ES, plus, debugging the tree search is very hard.
 
-I eventually ended up writing a simple linear search and then I played a little bit with shading (you can see the result [here](https://github.com/loryruta/wasm-test)).
+I eventually ended up writing a simple linear search and then I played a little bit with shading (you can see the result [here](https://loryruta.github.io/wasm-test)).
 
 ![:/](./screenshots/voronoi1.png)
 
