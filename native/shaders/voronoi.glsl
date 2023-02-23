@@ -41,15 +41,17 @@ void main()
         }
     }
 
+    int pi = nearest_point_idx[0].x * texture_size.y + nearest_point_idx[0].y;
+
     vec3 point_color = vec3(
-        rand(float(nearest_point_idx[0].x + 324)),
-        rand(float(nearest_point_idx[0].y + 893)),
-        rand(float(nearest_point_idx[0].x + 172))
+        rand(float(pi + 5678)) * 0.6 + 0.2,
+        rand(float(pi + 2342)) * 0.6 + 0.2,
+        rand(float(pi + 8905)) * 0.6 + 0.2
     );
 
-    const float k_border_size = 80.0;
+    const float k_border_size = 123.0;
     const float k_border_shade_stripes = 3.8;
-    const vec3 k_border_color = vec3(0, 0, 0.07); 
+    const vec3 k_border_color = vec3(0, 0, 0.2); 
 
     vec2 p1 = texelFetch(u_point_pos, nearest_point_idx[0], 0).rg;
     vec2 p2 = texelFetch(u_point_pos, nearest_point_idx[1], 1).rg;

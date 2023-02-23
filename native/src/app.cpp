@@ -10,8 +10,8 @@
 
 #include <GLES3/gl3.h>
 
-#define NUM_POINTS_X 5
-#define NUM_POINTS_Y 4
+#define NUM_POINTS_X 6
+#define NUM_POINTS_Y 5
 
 char const* g_screen_quad_shader_src = "{{ SCREEN_QUAD_SRC }}";
 char const* g_bounce_points_shader_src = "{{ BOUNCE_POINTS_SRC }}";
@@ -73,7 +73,11 @@ void initialize_point_textures()
         glGenTextures(1, &g_point_positions_textures[i]);
 
         glBindTexture(GL_TEXTURE_2D, g_point_positions_textures[i]);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RG32F, NUM_POINTS_X, NUM_POINTS_Y, 0, GL_RG, GL_FLOAT, i == 0 ? point_positions.data() : nullptr);
+
+        // The image data should only be uploaded for the first buffer since the second buffer values will be initialized by the
+        // bounce_lights pass. However since in WebGL we don't have correct synchronization between writes/reads from the same texture
+        // in two subsequent passes, it's practically resulted that initializing both buffers with the same data works
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RG32F, NUM_POINTS_X, NUM_POINTS_Y, 0, GL_RG, GL_FLOAT, point_positions.data());
         
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -84,7 +88,7 @@ void initialize_point_textures()
         glGenTextures(1, &g_point_directions_textures[i]);
         
         glBindTexture(GL_TEXTURE_2D, g_point_directions_textures[i]);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RG32F, NUM_POINTS_X, NUM_POINTS_Y, 0, GL_RG, GL_FLOAT, i == 0 ? point_directions.data() : nullptr);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RG32F, NUM_POINTS_X, NUM_POINTS_Y, 0, GL_RG, GL_FLOAT, point_directions.data());
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -214,14 +218,17 @@ extern "C" void app_draw(uint32_t screen_width, uint32_t screen_height)
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, g_point_directions_textures[(g_frame_idx + 1) % 2], 0);
 
         // Bind uniforms
-        glActiveTexture(GL_TEXTURE0); glBindTexture(GL_TEXTURE_2D, g_point_positions_textures[g_frame_idx % 2]);  // u_point_pos
-        glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, g_point_directions_textures[g_frame_idx % 2]); // u_point_dir
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, g_point_positions_textures[g_frame_idx % 2]);  // u_point_pos
+
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, g_point_directions_textures[g_frame_idx % 2]); // u_point_dir
 
         //glUniform1f(get_uniform_location(g_bounce_points_program, "u_dt"), dt);
         glUniform2f(get_uniform_location(g_bounce_points_program, "u_screen_size"), (float) screen_width, (float) screen_height);
 
         glDrawArrays(GL_TRIANGLES, 0, 6);
-    }
+    } 
 
     /* Voronoi */
     glUseProgram(g_voronoi_program);

@@ -44,11 +44,6 @@ void update_point(
         point_dir.y = -point_dir.y;
         point_pos.y = u_screen_size.y - k_margin;
     }
-
-    //if (abs(point_dir.x) < 0.1) point_dir.x = sign(point_dir.x) * 0.1;
-    //if (abs(point_dir.y) < 0.1) point_dir.x = sign(point_dir.y) * 0.1;
-
-    //point_pos = vec2(u_screen_size) / vec2(2);
 }
 
 void main()
