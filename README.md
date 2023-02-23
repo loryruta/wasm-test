@@ -10,6 +10,8 @@ The first trial was to accelerate the nearest point search (for the Voronoi diag
 
 I eventually ended up writing a simple linear search and then I played a little bit with shading (you can see the result [here](https://github.com/loryruta/wasm-test)).
 
+[:/](./screenshots/voronoi1.png)
+
 I'm not satisfied of the result but _3 days_ of efforts are enough for this.
 
 Probably this project may be used in the future as a basis for a Emscripten + WebGL application, but also the KD-tree implementation - even if not used - is well written and working (it's also provided with a test unit).
