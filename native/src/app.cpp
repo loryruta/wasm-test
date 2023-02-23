@@ -12,6 +12,7 @@
 
 #define NUM_POINTS_X 6
 #define NUM_POINTS_Y 5
+#define BOUNCING_ENABLED
 
 char const* g_screen_quad_shader_src = "{{ SCREEN_QUAD_SRC }}";
 char const* g_bounce_points_shader_src = "{{ BOUNCE_POINTS_SRC }}";
@@ -26,6 +27,7 @@ GLuint g_point_positions_textures[2];
 GLuint g_point_directions_textures[2];
 
 uint32_t g_frame_idx = 0;
+
 
 float rand_float()
 {
@@ -167,7 +169,7 @@ extern "C" void app_init()
 {
     printf("app_init\n");
 
-    srand((uint32_t) get_current_millis());
+    //srand((uint32_t) get_current_millis());
 
     initialize_point_textures();
     
@@ -202,6 +204,7 @@ extern "C" void app_draw(uint32_t screen_width, uint32_t screen_height)
     glClearColor(0, 0, 0, 1);
 
     /* Bounce points */
+#ifdef BOUNCING_ENABLED
     if (dt > 0)
     {
         glUseProgram(g_bounce_points_program);
@@ -228,7 +231,8 @@ extern "C" void app_draw(uint32_t screen_width, uint32_t screen_height)
         glUniform2f(get_uniform_location(g_bounce_points_program, "u_screen_size"), (float) screen_width, (float) screen_height);
 
         glDrawArrays(GL_TRIANGLES, 0, 6);
-    } 
+    }
+#endif
 
     /* Voronoi */
     glUseProgram(g_voronoi_program);
