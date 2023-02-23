@@ -1,7 +1,9 @@
 
-mkdir ./build -erroraction 'silentlycontinue'
+mkdir ./build -ErrorAction 'silentlycontinue'
 
-Copy-Item ./src/app.cpp ./build/resolved_app.cpp
+$ResolvedAppPath = './docs/resolved_app.cpp'
+
+Copy-Item ./native/src/app.cpp $ResolvedAppPath
 
 function FormatStringForCCode {
     param (
@@ -27,11 +29,11 @@ function EmbedContent {
     (Get-Content $FilePath).replace($PlaceholderName, $ResourceContent) | Set-Content $FilePath
 }
 
-EmbedContent -FilePath ./build/resolved_app.cpp -PlaceholderName '{{ SCREEN_QUAD_SRC }}' -ResourcePath ./shaders/screen_quad.glsl
-EmbedContent -FilePath ./build/resolved_app.cpp -PlaceholderName '{{ BOUNCE_POINTS_SRC }}' -ResourcePath ./shaders/bounce_points.glsl
-EmbedContent -FilePath ./build/resolved_app.cpp -PlaceholderName '{{ VORONOI_SRC }}' -ResourcePath ./shaders/voronoi.glsl
+EmbedContent -FilePath $ResolvedAppPath -PlaceholderName '{{ SCREEN_QUAD_SRC }}' -ResourcePath ./native/shaders/screen_quad.glsl
+EmbedContent -FilePath $ResolvedAppPath -PlaceholderName '{{ BOUNCE_POINTS_SRC }}' -ResourcePath ./native/shaders/bounce_points.glsl
+EmbedContent -FilePath $ResolvedAppPath -PlaceholderName '{{ VORONOI_SRC }}' -ResourcePath ./native/shaders/voronoi.glsl
 
-emcc ./build/resolved_app.cpp -O0 -o voronoi.mjs `
+emcc $ResolvedAppPath -O0 -o ./docs/voronoi.mjs `
     -s EXPORTED_FUNCTIONS=_app_init,_app_draw `
     -s EXPORTED_RUNTIME_METHODS=GL,cwrap `
     -s ASSERTIONS=1 `
@@ -39,3 +41,9 @@ emcc ./build/resolved_app.cpp -O0 -o voronoi.mjs `
     -s GL_PREINITIALIZED_CONTEXT=1 `
     -s USE_GLFW=3 `
     -s MIN_WEBGL_VERSION=2
+
+echo 'app.cpp compiled'
+
+Copy-Item ./web/* -Destination ./docs/ -Recurse
+
+echo 'web folder copied'

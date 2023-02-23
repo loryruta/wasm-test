@@ -9,16 +9,13 @@ uniform sampler2D u_point_pos;
 
 out vec4 frag_color;
 
-float hash(float n)
-{
-    return fract(sin(n) * 43758.5453123);
-}
+float rand(float n){return fract(sin(n) * 43758.5453123);}
 
 void main()
 {
     vec2 my_point = gl_FragCoord.xy;
 
-    uint nearest_point_idx[2];
+    ivec2 nearest_point_idx[2];
     float nearest_point_distance[2];
 
     nearest_point_distance[0] = INF;
@@ -39,28 +36,38 @@ void main()
                 nearest_point_idx[1] = nearest_point_idx[0];
 
                 nearest_point_distance[0] = d;
-                nearest_point_idx[0] = uint(x * texture_size.y + y);
+                nearest_point_idx[0] = ivec2(x, y);
             }
         }
     }
 
     vec3 point_color = vec3(
-        hash(float(nearest_point_idx[0] + 324u)),
-        hash(float(nearest_point_idx[0] + 893u)),
-        hash(float(nearest_point_idx[0] + 172u))
+        rand(float(nearest_point_idx[0].x + 324)),
+        rand(float(nearest_point_idx[0].y + 893)),
+        rand(float(nearest_point_idx[0].x + 172))
     );
 
     const float k_border_size = 80.0;
     const float k_border_shade_stripes = 3.8;
     const vec3 k_border_color = vec3(0, 0, 0.07); 
 
-    float ed = abs(nearest_point_distance[0] - nearest_point_distance[1]);
-    ed = min(ed, k_border_size) / k_border_size;
-    ed = ed - mod(ed, (1.0 / k_border_shade_stripes));
+    vec2 p1 = texelFetch(u_point_pos, nearest_point_idx[0], 0).rg;
+    vec2 p2 = texelFetch(u_point_pos, nearest_point_idx[1], 1).rg;
+    vec2 md = (p1 + p2) / 2.0;
+
+    float d1 = nearest_point_distance[0];
+    float d2 = nearest_point_distance[1];
+
+    float ed = abs(d1 - d2);
+    //float cd = abs((p2.x - p1.x) * (p1.y - my_point.y) - (p1.x - my_point.x) * (p2.y - p1.y)) / distance(p2, p1);
+
+    float fd = ed;
+    fd = min(fd, k_border_size) / k_border_size;
+    fd = fd - mod(fd, (1.0 / k_border_shade_stripes));
 
     // SHOW VORONOI
     frag_color = vec4(
-        mix(k_border_color, point_color, ed),
+        mix(k_border_color, point_color, fd),
         1
     );
 
