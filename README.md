@@ -18,7 +18,7 @@ Probably this project may be used in the future as a basis for a Emscripten + We
 
 ## How to build
 
-#### Linux
+### Linux
 
 Run the build commands manually or get Windows 😈
 
